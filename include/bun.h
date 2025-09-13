@@ -36,6 +36,10 @@ Usage:
         }
     cc main.c -I<path-to-bun.h-dir> -L<path-to-bun.a-dir> -lbun
 
+DISCLAIMER:
+    This is not thoroughly tested, it may have horrible memory bugs that
+    Will ruin your day.
+
 Refrances:
     https://www.gingerbill.org/article/2019/02/08/memory-allocation-strategies-002/
     https://pkg.odin-lang.org/core/mem/
@@ -64,11 +68,11 @@ typedef uint64_t U64;
 typedef float    F32;
 typedef double   F64;
 
-typedef U8 Byte
+typedef U8 Byte;
 
 typedef struct
 {
-    const char *ptr;
+    char *ptr;
     U32 len;
 } String;
 
@@ -123,7 +127,7 @@ typedef struct
     U32 buffer_size;
     U32 offset;
 
-} Arena
+} Arena;
 
 typedef struct
 {
@@ -146,7 +150,7 @@ void *Allocator_Resize(void *ptr, U32 size, U32 old_size, bool zeroed, U32 align
 #define Allocator_NEW( T, A ) ((T*)Allocator_Alloc( sizeof(T), true, BUN_ALLOCATOR_DEFAULT_ALIGN, A ))
 #endif
 
-void Arena_Init_From_Allocator(Arena *arena, U32 buffer_size, bool zeroed, U32 alignment, Allocator *allocator);
+void Arena_Init_From_Allocator(Arena *arena, Allocator *allocator, U32 buffer_size, bool zeroed, U32 alignment);
 void Arena_Deinit_From_Allocator(Arena *arena, Allocator *allocator);
 void *Arena_Alloc(U32 size, bool zeroed, U32 alignment, Arena *arena);
 void *Arena_Resize(void *old_memory, U32 size, U32 old_size, bool zeroed, U32 alignment, Arena *arena);
@@ -319,7 +323,6 @@ bool String_Is_Null_Terminated(String string);
 
 #endif /*BUN_H*/
 
-#define BUN_IMPLEMENTATION
 #ifdef BUN_IMPLEMENTATION
 
 U32 Bun_Align_formula( U32 size, U32 alignment)
@@ -434,7 +437,7 @@ bool Allocator_Free(void *ptr, Allocator *allocator)
 {
     if (!allocator) return NULL;
 
-    if (mode &~ allocator->implemented_modes)
+    if (ALLOCATOR_MODE_FREE &~ allocator->implemented_modes)
     {
         allocator->error = ALLOCATOR_ERROR_MODE_NOT_IMPLEMENTED;
         return false;
@@ -453,7 +456,7 @@ bool Allocator_Free_all(Allocator *allocator)
 {
     if (!allocator) return NULL;
 
-    if (mode &~ allocator->implemented_modes)
+    if (ALLOCATOR_MODE_FREE_ALL &~ allocator->implemented_modes)
     {
         allocator->error = ALLOCATOR_ERROR_MODE_NOT_IMPLEMENTED;
         return NULL;
@@ -487,16 +490,16 @@ void *Allocator_Resize(void *ptr, U32 size, U32 old_size, bool zeroed, U32 align
                           );
 }
 
-void Arena_Init_From_Allocator(Arena *arena, U32 buffer_size, bool zeroed, U32 alignment, Allocator *allocator)
+void Arena_Init_From_Allocator(Arena *arena, Allocator *allocator, U32 buffer_size, bool zeroed, U32 alignment)
 {
-    arena->buffer = Allocator_Alloc(size, zeroed, alignment, allocator);
-    arena->buffer_size = size;
+    arena->buffer = Allocator_Alloc(buffer_size, zeroed, alignment, allocator);
+    arena->buffer_size = buffer_size;
     arena->offset = 0;
 }
 void Arena_Deinit_From_Allocator(Arena *arena, Allocator *allocator)
 {
-    Allocator_Free(arena, allocator);
-    *arena = {0};
+    Allocator_Free(arena->buffer, allocator);
+    memset( arena, 0, sizeof(arena) );
 }
 void *Arena_Alloc(U32 size, bool zeroed, U32 alignment, Arena *arena)
 {
@@ -508,7 +511,7 @@ void *Arena_Alloc(U32 size, bool zeroed, U32 alignment, Arena *arena)
 
     if ( offset + size > arena->buffer_size ) return NULL;
 
-    void *ptr = &arena->buffer[offset];
+    ptr = &arena->buffer[offset];
     arena->offset = offset + size;
 
     if (zeroed) memset(ptr, 0, size);
@@ -522,23 +525,23 @@ void *Arena_Resize(void *old_memory, U32 size, U32 old_size, bool zeroed, U32 al
 
     if (old_memory == NULL
     || old_size == 0
-    || (uintptr_t)old_memory < (uintptr_t)arena.buffer
-    || (uintptr_t)old_memory + size >= (uintptr_t)arena.buffer + arena.buffer_size
+    || (uintptr_t)old_memory < (uintptr_t)arena->buffer
+    || (uintptr_t)old_memory + size >= (uintptr_t)arena->buffer + arena->buffer_size
     ) return NULL;
 
     if (size < old_size)
     {
         arena->offset -= old_size - size;
-        return ptr;
+        return old_memory;
     }
 
-    old_memory_offset = (uintptr_t)old_memory - (uintptr_t)arena.buffer;
+    old_memory_offset = (uintptr_t)old_memory - (uintptr_t)arena->buffer;
     offset = old_memory_offset + (uintptr_t)old_size;
-    if (offset == (uintptr_t)arena.buffer_offset)
+    if (offset == (uintptr_t)arena->offset)
     {
         offset = old_memory_offset + size;
         if (offset > arena->buffer_size) return NULL;
-        buffer.offset = offset;
+        arena->offset = offset;
         return old_memory;
     }
     else
@@ -551,7 +554,7 @@ void *Arena_Resize(void *old_memory, U32 size, U32 old_size, bool zeroed, U32 al
 
 void Arena_Free_All(Arena *arena)
 {
-    arena.offset = 0;
+    arena->offset = 0;
 }
 
 bool Dynamic_Arena_Init( Dynamic_Arena *arena, Allocator *backing_allocator, U32 pool_size, bool pool_zeroed, U32 pool_alignment )
@@ -560,7 +563,7 @@ bool Dynamic_Arena_Init( Dynamic_Arena *arena, Allocator *backing_allocator, U32
                                                | ALLOCATOR_MODE_ALLOC_NON_ZEROED
                                                | ALLOCATOR_MODE_RESIZE
                                                | ALLOCATOR_MODE_FREE;
-    if (!arena || !backing_allocator || !Pool_Size
+    if (!arena || !backing_allocator || !pool_size
     || required_modes &~ backing_allocator->implemented_modes
     ) return false;
 
@@ -570,7 +573,7 @@ bool Dynamic_Arena_Init( Dynamic_Arena *arena, Allocator *backing_allocator, U32
     arena->pool_alignment = pool_alignment;
     arena->pool_offset    = 0;
 
-    arena->pool_len = 8
+    arena->pool_len = 8;
     arena->pools = Allocator_Alloc(sizeof(Arena)*arena->pool_len, true, BUN_ALLOCATOR_DEFAULT_ALIGN, backing_allocator);
     if (arena->pools == NULL) return false;
 
@@ -587,16 +590,16 @@ void Dynamic_Arena_Deinit( Dynamic_Arena *arena )
     for ( i = 0; i < arena->pool_len; i++ )
     {
         if (arena->pools[i].buffer == NULL) break;
-        Allocator_Free(arena->pools[i].buffer, arena->backing_allocator)
+        Allocator_Free(arena->pools[i].buffer, arena->allocator);
     }
-    Allocator_Free(arena->pools, arena->backing_allocator)
+    Allocator_Free(arena->pools, arena->allocator);
 }
 
 void *Dynamic_Arena_Alloc_Push(U32 size, bool zeroed, U32 alignment, Dynamic_Arena *arena)
 {
     uintptr_t current_pointer, offset;
     void *ptr;
-    Arena_Pool *pool;
+    Arena *pool;
 
     /*Im blanking on if `type x = y[]` is a copy or not, I think it is, but have no internet to check*/
     pool = &arena->pools[arena->pool_offset];
@@ -604,7 +607,7 @@ void *Dynamic_Arena_Alloc_Push(U32 size, bool zeroed, U32 alignment, Dynamic_Are
     current_pointer = (uintptr_t)pool->buffer + (uintptr_t)pool->offset;
     offset = (uintptr_t)Bun_Align_formula(current_pointer, alignment) - (uintptr_t)pool->buffer;
 
-    if ( offset + size > arena->buffer_size )
+    if ( offset + size > pool->buffer_size )
     {
         U32 pool_size = (arena->pool_size > size) ? arena->pool_size : size;
 
@@ -612,12 +615,12 @@ void *Dynamic_Arena_Alloc_Push(U32 size, bool zeroed, U32 alignment, Dynamic_Are
 
         if (arena->pool_offset >= arena->pool_len)
         {
-            U32 old_size = sizeof(Arena_Pool)*arena->pool_len;
-            Arena_Pool *new_ptr;
+            U32 old_size = sizeof(Arena)*arena->pool_len;
+            Arena *new_ptr;
             
             arena->pool_len += 8;
             new_ptr = Allocator_Resize( arena->pools,
-                                        sizeof(Arena_Pool)*arena->pool_len, old_size,
+                                        sizeof(Arena)*arena->pool_len, old_size,
                                         true, BUN_ALLOCATOR_DEFAULT_ALIGN, arena->allocator);
             if (!new_ptr)
                 return NULL;
@@ -626,8 +629,8 @@ void *Dynamic_Arena_Alloc_Push(U32 size, bool zeroed, U32 alignment, Dynamic_Are
         }
         pool = &arena->pools[arena->pool_offset];
         offset = 0;
-        Arena_Init_From_Allocator( pool, pool_size, arena->pool_zeroed, arena->pool_alignment );
-        if (pool.buffer == NULL) return NULL;
+        Arena_Init_From_Allocator( pool, arena->allocator, pool_size, arena->pool_zeroed, arena->pool_alignment );
+        if (pool->buffer == NULL) return NULL;
     }
 
     ptr = &pool->buffer[offset];
@@ -641,11 +644,11 @@ void *Dynamic_Arena_Alloc_Insert(U32 size, bool zeroed, U32 alignment, Dynamic_A
 {
     uintptr_t current_pointer, offset;
     void *ptr;
-    Arena_Pool *pool;
+    Arena *pool;
 
     if (size > arena->pool_size) return Dynamic_Arena_Alloc_Push(size, zeroed, alignment, arena);
 
-    int i
+    int i;
     for (i = 0; i < arena->pool_len; i++)
     {
         pool = &arena->pools[i];
@@ -653,37 +656,37 @@ void *Dynamic_Arena_Alloc_Insert(U32 size, bool zeroed, U32 alignment, Dynamic_A
         current_pointer = (uintptr_t)pool->buffer + (uintptr_t)pool->offset;
         offset = (uintptr_t)Bun_Align_formula(current_pointer, alignment) - (uintptr_t)pool->buffer;
 
-        if ( offset + size > arena->buffer_size ) continue;
+        if ( offset + size > pool->buffer_size ) continue;
 
         ptr = &pool->buffer[offset];
         pool->offset = offset + size;
 
-        if (zeroed) memset(ptr, 0 size);
+        if (zeroed) memset(ptr, 0, size);
 
         return ptr;
     }
     /* if we reach here there are no gaps to fill */
-    return Dynamic_Arena_Alloc_Push(size, zeroed, alignment, arena)
+    return Dynamic_Arena_Alloc_Push(size, zeroed, alignment, arena);
 }
 void *Dynamic_Arena_Resize(void *old_memory, U32 size, U32 old_size, bool zeroed, U32 alignment, Dynamic_Arena *arena)
 {
     uintptr_t current_pointer, offset;
     void *ptr;
-    Arena_Pool *pool;
+    Arena *pool;
     int i;
 
     for (i = 0; i < arena->pool_offset; i++)
     {
         pool = &arena->pools[i];
-        if (old_memory < pool->buffer || old_memory >= pool->buffer + arena->buffer_size)
+        if ((uintptr_t)old_memory < (uintptr_t)pool->buffer || (uintptr_t)old_memory >= (uintptr_t)pool->buffer + pool->buffer_size)
             continue;
         /* pool found */
-        offset = old_memory - pool->buffer;
+        offset = (Byte*)old_memory - pool->buffer;
         if (offset == pool->offset - old_size) /*Is on the end*/
         {
             if (offset + size >= pool->buffer_size)
             {
-                buffer->offset = offset;
+                pool->offset = offset;
                 ptr = Dynamic_Arena_Alloc_Push(size, zeroed, alignment, arena);
                 if (ptr == NULL) return NULL;
                 return memmove(ptr, old_memory, size);
@@ -740,7 +743,7 @@ void Dynamic_Arena_Free_Pools(Dynamic_Arena *arena, U32 min_pools, bool zero_poo
         if (i >= min_pools) Allocator_Free(pool->buffer, arena->allocator);
         else if (zero_pools) memset(pool->buffer, 0, pool->buffer_size);
     }
-    arena->pools Allocator_Resize( arena->pools,
+    arena->pools = Allocator_Resize( arena->pools,
                                    sizeof(Arena)*min_pools, sizeof(Arena)*arena->pool_len,
                                    false, BUN_ALLOCATOR_DEFAULT_ALIGN, arena->allocator);
     arena->pool_len = min_pools;
@@ -751,7 +754,7 @@ String String_Alias(const char *cstring, U32 len)
 {
     if (!len) len = (U32)strlen(cstring);
     return (String){
-        .ptr = cstring,
+        .ptr = (char*)cstring,
         .len = len
     };
 }
@@ -775,7 +778,7 @@ String String_Copy(const char *cstring, U32 len, Allocator *allocator)
 
 String String_Duplicate(String string, Allocator *allocator)
 {
-    return Bun_String_Copy( string.ptr, string.len, allocator );
+    return String_Copy( string.ptr, string.len, allocator );
 }
 
 bool String_Is_Null_Terminated(String string)
