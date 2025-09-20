@@ -9,6 +9,7 @@ STANDARD:
 Defines:
     BUN_IMPLEMENTATION - Include Implementation code.
     BUN_NO_MACROS      - Exclude all macro #defines.
+    BUN_STRIP_PREFIX   - provide 'bun_' unprifixed aliases
 
 Provides:
     U8-64         - unsigned type aliases.
@@ -55,26 +56,28 @@ Refrances:
 #include <string.h>
 #include <stdbool.h>
 
-typedef int8_t   S8;
-typedef int16_t  S16;
-typedef int32_t  S32;
-typedef int64_t  S64;
+typedef int8_t   Bun_S8;
+typedef int16_t  Bun_S16;
+typedef int32_t  Bun_S32;
+typedef int64_t  Bun_S64;
 
-typedef uint8_t  U8;
-typedef uint16_t U16;
-typedef uint32_t U32;
-typedef uint64_t U64;
+typedef uint8_t  Bun_U8;
+typedef uint16_t Bun_U16;
+typedef uint32_t Bun_U32;
+typedef uint64_t Bun_U64;
 
-typedef float    F32;
-typedef double   F64;
+/*XXX: x86_64 only */
+typedef float       Bun_F32;
+typedef double      Bun_F64;
+typedef long double Bun_F128;
 
-typedef U8 Byte;
+typedef Bun_U8 Bun_Byte;
 
 typedef struct
 {
     char *ptr;
-    U32 len;
-} String;
+    Bun_U32 len;
+} Bun_String;
 
 /* I'm using ODIN as refrence and it uses align_of*/
 /* of course c < c11 doesnt have this, but the alignment*/
@@ -82,79 +85,79 @@ typedef struct
 /* In anycase this is 2*8 = 16 bytes on x86_64 which is what we want.*/
 #define BUN_ALLOCATOR_DEFAULT_ALIGN 2 * sizeof(uintptr_t)
 
-typedef U16 Allocator_Error;
+typedef Bun_U16 Bun_Allocator_Error;
 enum
 {
-    ALLOCATOR_ERROR_NONE,
-    ALLOCATOR_ERROR_MODE_NOT_IMPLEMENTED,
-    ALLOCATOR_ERROR_OUT_OF_MEMORY,
-    ALLOCATOR_ERROR_INVALID_POINTER,
-    ALLOCATOR_ERROR_INVALID_ARGUMENT,
-    ALLOCATOR_ERROR_UNKNOWN,
-    _ALLOCATOR_ERROR_COUNT, /*If a custom allocator needs to have more errors have them relitive to this*/
+    BUN_ALLOCATOR_ERROR_NONE,
+    BUN_ALLOCATOR_ERROR_MODE_NOT_IMPLEMENTED,
+    BUN_ALLOCATOR_ERROR_OUT_OF_MEMORY,
+    BUN_ALLOCATOR_ERROR_INVALID_POINTER,
+    BUN_ALLOCATOR_ERROR_INVALID_ARGUMENT,
+    BUN_ALLOCATOR_ERROR_UNKNOWN,
+    _BUN_ALLOCATOR_ERROR_COUNT, /*If a custom allocator needs to have more errors have them relitive to this*/
 };
-typedef U8 Allocator_Mode;
+typedef Bun_U8 Bun_Allocator_Mode;
 enum
 {
-    ALLOCATOR_MODE_ALLOC             = (1<<0),
-    ALLOCATOR_MODE_ALLOC_NON_ZEROED  = (1<<1),
-    ALLOCATOR_MODE_FREE              = (1<<2),
-    ALLOCATOR_MODE_FREE_ALL          = (1<<3),
-    ALLOCATOR_MODE_RESIZE            = (1<<4),
-    ALLOCATOR_MODE_RESIZE_NON_ZEROED = (1<<5),
+    BUN_ALLOCATOR_MODE_ALLOC             = (1<<0),
+    BUN_ALLOCATOR_MODE_ALLOC_NON_ZEROED  = (1<<1),
+    BUN_ALLOCATOR_MODE_FREE              = (1<<2),
+    BUN_ALLOCATOR_MODE_FREE_ALL          = (1<<3),
+    BUN_ALLOCATOR_MODE_RESIZE            = (1<<4),
+    BUN_ALLOCATOR_MODE_RESIZE_NON_ZEROED = (1<<5),
 };
-typedef void *(*Allocator_Proc)(
+typedef void *(*Bun_Allocator_Proc)(
                                 void *allocator_data,
-                                Allocator_Error *allocator_error,
-                                Allocator_Mode mode,
-                                U32 size,
-                                U32 alignment,
+                                Bun_Allocator_Error *allocator_error,
+                                Bun_Allocator_Mode mode,
+                                Bun_U32 size,
+                                Bun_U32 alignment,
                                 void *old_memory,
-                                U32 old_size
+                                Bun_U32 old_size
                                );
 typedef struct
 {
-    Allocator_Proc proc;
+    Bun_Allocator_Proc proc;
 
-    Allocator_Mode implemented_modes;
+    Bun_Allocator_Mode implemented_modes;
     void *data;
-    Allocator_Error error;
-} Allocator;
+    Bun_Allocator_Error error;
+} Bun_Allocator;
 
 typedef struct
 {
-    Byte *buffer;
-    U32 buffer_size;
-    U32 offset;
+    Bun_Byte *buffer;
+    Bun_U32 buffer_size;
+    Bun_U32 offset;
 
-} Arena;
+} Bun_Arena;
 
 typedef struct
 {
-    Arena *pools;
-    U32 pool_len;
-    U32 pool_offset;
+    Bun_Arena *pools;
+    Bun_U32 pool_len;
+    Bun_U32 pool_offset;
 
-    U32  pool_size;
+    Bun_U32  pool_size;
     bool pool_zeroed;
-    U32  pool_alignment;
-    Allocator *allocator;
-} Dynamic_Arena;
+    Bun_U32  pool_alignment;
+    Bun_Allocator *allocator;
+} Bun_Dynamic_Arena;
 
-void *Allocator_Alloc(U32 size, bool zeroed, U32 alignment, Allocator *allocator);
-bool Allocator_Free(void *ptr, Allocator *allocator);
-bool Allocator_Free_all(Allocator *allocator);
-void *Allocator_Resize(void *ptr, U32 size, U32 old_size, bool zeroed, U32 alignment, Allocator *allocator);
+void *Bun_Allocator_Alloc(Bun_U32 size, bool zeroed, Bun_U32 alignment, Bun_Allocator *allocator);
+bool Bun_Allocator_Free(void *ptr, Bun_Allocator *allocator);
+bool Bun_Allocator_Free_all(Bun_Allocator *allocator);
+void *Bun_Allocator_Resize(void *ptr, Bun_U32 size, Bun_U32 old_size, bool zeroed, Bun_U32 alignment, Bun_Allocator *allocator);
 
 #ifndef BUN_NO_MACROS
-#define Allocator_NEW( T, A ) ((T*)Allocator_Alloc( sizeof(T), true, BUN_ALLOCATOR_DEFAULT_ALIGN, A ))
+#define Bun_Allocator_NEW( T, A ) ((T*)Bun_Allocator_Alloc( sizeof(T), true, BUN_ALLOCATOR_DEFAULT_ALIGN, A ))
 #endif
 
-void Arena_Init_From_Allocator(Arena *arena, Allocator *allocator, U32 buffer_size, bool zeroed, U32 alignment);
-void Arena_Deinit_From_Allocator(Arena *arena, Allocator *allocator);
-void *Arena_Alloc(U32 size, bool zeroed, U32 alignment, Arena *arena);
-void *Arena_Resize(void *old_memory, U32 size, U32 old_size, bool zeroed, U32 alignment, Arena *arena);
-void  Arena_Free_All(Arena *arena);
+void Bun_Arena_Init_From_Allocator(Bun_Arena *arena, Bun_Allocator *allocator, Bun_U32 buffer_size, bool zeroed, Bun_U32 alignment);
+void Bun_Arena_Deinit_From_Allocator(Bun_Arena *arena, Bun_Allocator *allocator);
+void *Bun_Arena_Alloc(Bun_U32 size, bool zeroed, Bun_U32 alignment, Bun_Arena *arena);
+void *Bun_Arena_Resize(void *old_memory, Bun_U32 size, Bun_U32 old_size, bool zeroed, Bun_U32 alignment, Bun_Arena *arena);
+void  Bun_Arena_Free_All(Bun_Arena *arena);
 
 /*
 Initialise dynamic_arena and allocate the first pool.
@@ -167,14 +170,14 @@ ARGS:
 RETURN:
     true on success, false on failure
 */
-bool Dynamic_Arena_Init( Dynamic_Arena *arena, Allocator *backing_allocator, U32 pool_size, bool pool_zeroed, U32 pool_alignment );
+bool Bun_Dynamic_Arena_Init( Bun_Dynamic_Arena *arena, Bun_Allocator *backing_allocator, Bun_U32 pool_size, bool pool_zeroed, Bun_U32 pool_alignment );
 /*
 Deinitialise dynamic_arena and free all pools
 
 ARGS:
     arena - initialised arena
 */
-void Dynamic_Arena_Deinit( Dynamic_Arena *arena);
+void Bun_Dynamic_Arena_Deinit( Bun_Dynamic_Arena *arena);
 /*
 Allocate using the dynamic arena, ignoring gaps in pools and attempting to
 push the allocation on the last pool.
@@ -190,7 +193,7 @@ ARGS:
 RETURN:
     Pointer to allocated memory or NULL on failure
 */
-void *Dynamic_Arena_Alloc_Push(U32 size, bool zeroed, U32 alignment, Dynamic_Arena *arena);
+void *Bun_Dynamic_Arena_Alloc_Push(Bun_U32 size, bool zeroed, Bun_U32 alignment, Bun_Dynamic_Arena *arena);
 /*
 Allocate using the dynamic arena, searching for gaps in all pools and
 inserting the new allocation in any free gap or appending it.
@@ -206,7 +209,7 @@ ARGS:
 RETURN:
     Pointer to allocated memory or NULL on failure
 */
-void *Dynamic_Arena_Alloc_Insert(U32 size, bool zeroed, U32 alignment, Dynamic_Arena *arena);
+void *Bun_Dynamic_Arena_Alloc_Insert(Bun_U32 size, bool zeroed, Bun_U32 alignment, Bun_Dynamic_Arena *arena);
 /*
 Resize previusly allocated memory in a dynamic arena.
 Will attempt to preserve the pointer if it is the last allocation in a pool
@@ -225,7 +228,7 @@ ARGS:
 RETURN:
     Pointer to allocated memory or NULL on failure
 */
-void *Dynamic_Arena_Resize(void *old_memory, U32 size, U32 old_size, bool zeroed, U32 alignment, Dynamic_Arena *arena);
+void *Bun_Dynamic_Arena_Resize(void *old_memory, Bun_U32 size, Bun_U32 old_size, bool zeroed, Bun_U32 alignment, Bun_Dynamic_Arena *arena);
 /*
 Free every allocation, but hold onto the allocated pools.
 New allocations after a free_all will overwrite the old memory in the pools.
@@ -234,7 +237,7 @@ ARGS:
     arena      - an initialised dynamic arena
     zero_pools - set the memory in all the pools to zero (if you use ZII, prefer this to individual zeroed allocs)
 */
-void Dynamic_Arena_Free_All(Dynamic_Arena *arena, bool zero_pools);
+void Bun_Dynamic_Arena_Free_All(Bun_Dynamic_Arena *arena, bool zero_pools);
 /*
 Free every allocation, and free all but untill min_pools pools.
 New allocations after a free_all will overwrite the old memory in the pools.
@@ -244,15 +247,15 @@ ARGS:
     min_pools  - number of pools to keep allocated. (individual objects allocated within these pools are still freed)
     zero_pools - set the memory in all the pools to zero (if you use ZII, prefer this to individual zeroed allocs)
 */
-void Dynamic_Arena_Free_Pools(Dynamic_Arena *arena, U32 min_pools, bool zero_pools);
+void Bun_Dynamic_Arena_Free_Pools(Bun_Dynamic_Arena *arena, Bun_U32 min_pools, bool zero_pools);
 
-extern Allocator allocator_libc;
+extern Bun_Allocator bun_allocator_libc;
 
 
 /*
 Align to nearest *alignment* forward
 */
-U32 Bun_Align_formula( U32 size, U32 alignment);
+Bun_U32 Bun_Align_formula( Bun_U32 size, Bun_U32 alignment);
 
 /*
 Alias cstring as string; does no allocation/copy.
@@ -263,7 +266,7 @@ ARGS:
 RETURN:
     string with .ptr == cstring and .len == *len* or (U32)strlen(cstring)
 */
-String String_Alias(const char *cstring, U32 len);
+Bun_String Bun_String_Alias(const char *cstring, Bun_U32 len);
 /*
 Copy cstring to a new string using the provided allocator.
 
@@ -274,7 +277,7 @@ ARGS:
 RETURN:
     string with .ptr == cstring and .len == *len* or (U32)strlen(cstring)
 */
-String String_Copy(const char *cstring, U32 len, Allocator *allocator);
+Bun_String String_Copy(const char *cstring, Bun_U32 len, Bun_Allocator *allocator);
 /*
 Dublicate string using the provided allocator.
 
@@ -284,7 +287,7 @@ ARGS:
 RETURN:
     A copy of string
 */
-String String_Duplicate(String string, Allocator *allocator);
+Bun_String Bun_String_Duplicate(Bun_String string, Bun_Allocator *allocator);
 /*
 Check wether string.ptr is null terminated respecting string.len.
 
@@ -293,31 +296,31 @@ ARGS:
 RETURN:
     true if string.ptr is null terminated otherwise false
 */
-bool String_Is_Null_Terminated(String string);
+bool Bun_String_Is_Null_Terminated(Bun_String string);
 
 #ifndef BUN_NO_MACROS
 
 
 /*only in c would one key work mean both internal and global*/
-#define INTERNAL      static
-#define GLOBAL        static
+#define BUN_INTERNAL      static
+#define BUN_GLOBAL        static
 
-#define BIT_L(N) (1<<N)
-#define BIT_H(N) (1ull<<N)
-#define BIT(N) ( (N < 32) BIT_L(N) : BIT_H(N) )
+#define BUN_BIT_L(N) (1<<N)
+#define BUN_BIT_H(N) (1ull<<N)
+#define BUN_BIT(N) ( (N < 32) BIT_L(N) : BIT_H(N) )
 
-#define DEFER_LOOP( begin, end ) for(int _i_ = ((begin), 0); !_i_; _i_ += 1, (end)) 
+#define BUN_DEFER_LOOP( begin, end ) for(int _i_ = ((begin), 0); !_i_; _i_ += 1, (end)) 
 
-#define MIN(A,B) (((A)<(B))?(A):(B))
-#define MAX(A,B) (((A)>(B))?(A):(B))
-#define CLAMP(A,X,B) (((X)<(A))?(A):((X)>(B))?(B):(X))
+#define BUN_MIN(A,B) (((A)<(B))?(A):(B))
+#define BUN_MAX(A,B) (((A)>(B))?(A):(B))
+#define BUN_CLAMP(A,X,B) (((X)<(A))?(A):((X)>(B))?(B):(X))
 
-#define INT_FROM_PTR(ptr) ((uintptr_t)(ptr))
+#define BUN_INT_FROM_PTR(ptr) ((uintptr_t)(ptr))
 
-#define MEMBER(T,m)                   (((T*)0)->m)
-#define OFFSET_OF(T,m)                INT_FROM_PTR(&MEMBER(T,m))
-#define MEMBER_FROM_OFFSET(T,ptr,off) (T)((((U8 *)ptr)+(off)))
-#define CAST_FROM_MEMBER(T,m,ptr)     (T*)(((U8*)ptr) - OFFSET_OF(T,m))
+#define BUN_MEMBER(T,m)                   (((T*)0)->m)
+#define BUN_OFFSET_OF(T,m)                INT_FROM_PTR(&MEMBER(T,m))
+#define BUN_MEMBER_FROM_OFFSET(T,ptr,off) (T)((((U8 *)ptr)+(off)))
+#define BUN_CAST_FROM_MEMBER(T,m,ptr)     (T*)(((U8*)ptr) - OFFSET_OF(T,m))
 
 #endif /*BUN_NO_MACROS*/
 
@@ -325,59 +328,59 @@ bool String_Is_Null_Terminated(String string);
 
 #ifdef BUN_IMPLEMENTATION
 
-U32 Bun_Align_formula( U32 size, U32 alignment)
+Bun_U32 Bun_Align_formula( Bun_U32 size, Bun_U32 alignment)
 {
-    U32 result = size + alignment-1;
+    Bun_U32 result = size + alignment-1;
     return result - result % alignment;
 }
 
-void *Allocator_Libc_Proc(void *allocator_data,
-                          Allocator_Error *allocator_error,
-                          Allocator_Mode mode,
-                          U32 size,
-                          U32 alignment,
+void *Bun_Allocator_Libc_Proc(void *allocator_data,
+                          Bun_Allocator_Error *allocator_error,
+                          Bun_Allocator_Mode mode,
+                          Bun_U32 size,
+                          Bun_U32 alignment,
                           void *old_memory,
-                          U32 old_size
+                          Bun_U32 old_size
                           )
 {
     void * ptr;
     switch (mode)
     {
-        case ALLOCATOR_MODE_ALLOC:
-        case ALLOCATOR_MODE_ALLOC_NON_ZEROED:
-            if (mode == ALLOCATOR_MODE_ALLOC) ptr = calloc( Bun_Align_formula(size, alignment), 1 );
+        case BUN_ALLOCATOR_MODE_ALLOC:
+        case BUN_ALLOCATOR_MODE_ALLOC_NON_ZEROED:
+            if (mode == BUN_ALLOCATOR_MODE_ALLOC) ptr = calloc( Bun_Align_formula(size, alignment), 1 );
             else                              ptr = malloc( Bun_Align_formula(size, alignment) );
             if (ptr == NULL && allocator_error != NULL)
             {
-                *allocator_error = (errno == ENOMEM) ? ALLOCATOR_ERROR_OUT_OF_MEMORY : ALLOCATOR_ERROR_UNKNOWN;
+                *allocator_error = (errno == ENOMEM) ? BUN_ALLOCATOR_ERROR_OUT_OF_MEMORY : BUN_ALLOCATOR_ERROR_UNKNOWN;
             }
             return ptr;
-        case ALLOCATOR_MODE_FREE:
+        case BUN_ALLOCATOR_MODE_FREE:
             if (old_memory == NULL)
             {
-                if (allocator_error != NULL) *allocator_error = ALLOCATOR_ERROR_INVALID_POINTER;
+                if (allocator_error != NULL) *allocator_error = BUN_ALLOCATOR_ERROR_INVALID_POINTER;
                 return NULL;
             }
             free(old_memory);
             return old_memory;
-        case ALLOCATOR_MODE_FREE_ALL:
+        case BUN_ALLOCATOR_MODE_FREE_ALL:
             return NULL; /*unimplemented*/
-        case ALLOCATOR_MODE_RESIZE:
+        case BUN_ALLOCATOR_MODE_RESIZE:
             if (old_size == 0)
             {
-                if (allocator_error != NULL) *allocator_error = ALLOCATOR_ERROR_INVALID_ARGUMENT;
+                if (allocator_error != NULL) *allocator_error = BUN_ALLOCATOR_ERROR_INVALID_ARGUMENT;
                 return NULL;
             }
             /* fallthrough */
-        case ALLOCATOR_MODE_RESIZE_NON_ZEROED:
+        case BUN_ALLOCATOR_MODE_RESIZE_NON_ZEROED:
             if (old_memory == NULL || size == 0)
             {
-                if (allocator_error != NULL) *allocator_error = ALLOCATOR_ERROR_INVALID_ARGUMENT;
+                if (allocator_error != NULL) *allocator_error = BUN_ALLOCATOR_ERROR_INVALID_ARGUMENT;
                 return NULL;
             }
             if (old_memory == NULL)
             {
-                if (allocator_error != NULL) *allocator_error = ALLOCATOR_ERROR_INVALID_POINTER;
+                if (allocator_error != NULL) *allocator_error = BUN_ALLOCATOR_ERROR_INVALID_POINTER;
                 return NULL;
             }
 
@@ -387,41 +390,41 @@ void *Allocator_Libc_Proc(void *allocator_data,
             {
                 if (allocator_error != NULL)
                 {
-                    *allocator_error = (errno == ENOMEM) ? ALLOCATOR_ERROR_OUT_OF_MEMORY : ALLOCATOR_ERROR_UNKNOWN;
+                    *allocator_error = (errno == ENOMEM) ? BUN_ALLOCATOR_ERROR_OUT_OF_MEMORY : BUN_ALLOCATOR_ERROR_UNKNOWN;
                 }
                 return NULL;
             }
 
             /* zero */
-            if (mode == ALLOCATOR_MODE_RESIZE && size > old_size)
+            if (mode == BUN_ALLOCATOR_MODE_RESIZE && size > old_size)
                 memset(ptr + old_size, 0, size - old_size);
 
             return ptr;
         default:
-            if (allocator_error != NULL) *allocator_error = ALLOCATOR_ERROR_MODE_NOT_IMPLEMENTED;
+            if (allocator_error != NULL) *allocator_error = BUN_ALLOCATOR_ERROR_MODE_NOT_IMPLEMENTED;
             return NULL;
     }
 }
 
-Allocator allocator_libc = (Allocator){
-    .proc = &Allocator_Libc_Proc,
-    .implemented_modes = ALLOCATOR_MODE_ALLOC
-                       | ALLOCATOR_MODE_ALLOC_NON_ZEROED
-                       | ALLOCATOR_MODE_FREE
-                       | ALLOCATOR_MODE_RESIZE
-                       | ALLOCATOR_MODE_RESIZE_NON_ZEROED,
+Bun_Allocator bun_allocator_libc = (Bun_Allocator){
+    .proc = &Bun_Allocator_Libc_Proc,
+    .implemented_modes = BUN_ALLOCATOR_MODE_ALLOC
+                       | BUN_ALLOCATOR_MODE_ALLOC_NON_ZEROED
+                       | BUN_ALLOCATOR_MODE_FREE
+                       | BUN_ALLOCATOR_MODE_RESIZE
+                       | BUN_ALLOCATOR_MODE_RESIZE_NON_ZEROED,
     .data = NULL,
     .error = 0,
 };
 
-void *Allocator_Alloc(U32 size, bool zeroed, U32 alignment, Allocator *allocator)
+void *Bun_Allocator_Alloc(Bun_U32 size, bool zeroed, Bun_U32 alignment, Bun_Allocator *allocator)
 {
     if (!allocator) return NULL;
-    Allocator_Mode mode = (zeroed) ? ALLOCATOR_MODE_ALLOC : ALLOCATOR_MODE_ALLOC_NON_ZEROED;
+    Bun_Allocator_Mode mode = (zeroed) ? BUN_ALLOCATOR_MODE_ALLOC : BUN_ALLOCATOR_MODE_ALLOC_NON_ZEROED;
 
     if (mode &~ allocator->implemented_modes)
     {
-        allocator->error = ALLOCATOR_ERROR_MODE_NOT_IMPLEMENTED;
+        allocator->error = BUN_ALLOCATOR_ERROR_MODE_NOT_IMPLEMENTED;
         return NULL;
     }
 
@@ -433,18 +436,18 @@ void *Allocator_Alloc(U32 size, bool zeroed, U32 alignment, Allocator *allocator
                             0
                           );
 }
-bool Allocator_Free(void *ptr, Allocator *allocator)
+bool Bun_Allocator_Free(void *ptr, Bun_Allocator *allocator)
 {
     if (!allocator) return NULL;
 
-    if (ALLOCATOR_MODE_FREE &~ allocator->implemented_modes)
+    if (BUN_ALLOCATOR_MODE_FREE &~ allocator->implemented_modes)
     {
-        allocator->error = ALLOCATOR_ERROR_MODE_NOT_IMPLEMENTED;
+        allocator->error = BUN_ALLOCATOR_ERROR_MODE_NOT_IMPLEMENTED;
         return false;
     }
 
     return allocator->proc( &allocator->data, &allocator->error,
-                            ALLOCATOR_MODE_FREE,
+                            BUN_ALLOCATOR_MODE_FREE,
                             0,
                             0,
                             ptr,
@@ -452,32 +455,32 @@ bool Allocator_Free(void *ptr, Allocator *allocator)
                           ) != NULL;
 
 }
-bool Allocator_Free_all(Allocator *allocator)
+bool Bun_Allocator_Free_all(Bun_Allocator *allocator)
 {
     if (!allocator) return NULL;
 
-    if (ALLOCATOR_MODE_FREE_ALL &~ allocator->implemented_modes)
+    if (BUN_ALLOCATOR_MODE_FREE_ALL &~ allocator->implemented_modes)
     {
-        allocator->error = ALLOCATOR_ERROR_MODE_NOT_IMPLEMENTED;
+        allocator->error = BUN_ALLOCATOR_ERROR_MODE_NOT_IMPLEMENTED;
         return NULL;
     }
 
     return allocator->proc( &allocator->data, &allocator->error,
-                            ALLOCATOR_MODE_FREE_ALL,
+                            BUN_ALLOCATOR_MODE_FREE_ALL,
                             0,
                             0,
                             NULL,
                             0
                           ) != NULL;
 }
-void *Allocator_Resize(void *ptr, U32 size, U32 old_size, bool zeroed, U32 alignment, Allocator *allocator)
+void *Bun_Allocator_Resize(void *ptr, Bun_U32 size, Bun_U32 old_size, bool zeroed, Bun_U32 alignment, Bun_Allocator *allocator)
 {
     if (!allocator) return NULL;
-    Allocator_Mode mode = (zeroed) ? ALLOCATOR_MODE_RESIZE : ALLOCATOR_MODE_RESIZE_NON_ZEROED;
+    Bun_Allocator_Mode mode = (zeroed) ? BUN_ALLOCATOR_MODE_RESIZE : BUN_ALLOCATOR_MODE_RESIZE_NON_ZEROED;
 
     if (mode &~ allocator->implemented_modes)
     {
-        allocator->error = ALLOCATOR_ERROR_MODE_NOT_IMPLEMENTED;
+        allocator->error = BUN_ALLOCATOR_ERROR_MODE_NOT_IMPLEMENTED;
         return NULL;
     }
 
@@ -490,18 +493,18 @@ void *Allocator_Resize(void *ptr, U32 size, U32 old_size, bool zeroed, U32 align
                           );
 }
 
-void Arena_Init_From_Allocator(Arena *arena, Allocator *allocator, U32 buffer_size, bool zeroed, U32 alignment)
+void Bun_Arena_Init_From_Allocator(Bun_Arena *arena, Bun_Allocator *allocator, Bun_U32 buffer_size, bool zeroed, Bun_U32 alignment)
 {
-    arena->buffer = Allocator_Alloc(buffer_size, zeroed, alignment, allocator);
+    arena->buffer = Bun_Allocator_Alloc(buffer_size, zeroed, alignment, allocator);
     arena->buffer_size = buffer_size;
     arena->offset = 0;
 }
-void Arena_Deinit_From_Allocator(Arena *arena, Allocator *allocator)
+void Bun_Arena_Deinit_From_Allocator(Bun_Arena *arena, Bun_Allocator *allocator)
 {
-    Allocator_Free(arena->buffer, allocator);
+    Bun_Allocator_Free(arena->buffer, allocator);
     memset( arena, 0, sizeof(arena) );
 }
-void *Arena_Alloc(U32 size, bool zeroed, U32 alignment, Arena *arena)
+void *Bun_Arena_Alloc(Bun_U32 size, bool zeroed, Bun_U32 alignment, Bun_Arena *arena)
 {
     uintptr_t current_pointer, offset;
     void *ptr;
@@ -519,7 +522,7 @@ void *Arena_Alloc(U32 size, bool zeroed, U32 alignment, Arena *arena)
     return ptr;
 }
 
-void *Arena_Resize(void *old_memory, U32 size, U32 old_size, bool zeroed, U32 alignment, Arena *arena)
+void *Bun_Arena_Resize(void *old_memory, Bun_U32 size, Bun_U32 old_size, bool zeroed, Bun_U32 alignment, Bun_Arena *arena)
 {
     uintptr_t offset, old_memory_offset;
 
@@ -546,23 +549,23 @@ void *Arena_Resize(void *old_memory, U32 size, U32 old_size, bool zeroed, U32 al
     }
     else
     {
-        void *new_memory = Arena_Alloc(size, zeroed, alignment, arena);
+        void *new_memory = Bun_Arena_Alloc(size, zeroed, alignment, arena);
         if (new_memory == NULL) return NULL;
         return memmove(new_memory, old_memory, size);
     }
 }
 
-void Arena_Free_All(Arena *arena)
+void Bun_Arena_Free_AllBun_(Bun_Arena *arena)
 {
     arena->offset = 0;
 }
 
-bool Dynamic_Arena_Init( Dynamic_Arena *arena, Allocator *backing_allocator, U32 pool_size, bool pool_zeroed, U32 pool_alignment )
+bool Bun_Dynamic_Arena_Init( Bun_Dynamic_Arena *arena, Bun_Allocator *backing_allocator, Bun_U32 pool_size, bool pool_zeroed, Bun_U32 pool_alignment )
 {
-    static const Allocator_Mode required_modes = ALLOCATOR_MODE_ALLOC
-                                               | ALLOCATOR_MODE_ALLOC_NON_ZEROED
-                                               | ALLOCATOR_MODE_RESIZE
-                                               | ALLOCATOR_MODE_FREE;
+    static const Bun_Allocator_Mode required_modes = BUN_ALLOCATOR_MODE_ALLOC
+                                               | BUN_ALLOCATOR_MODE_ALLOC_NON_ZEROED
+                                               | BUN_ALLOCATOR_MODE_RESIZE
+                                               | BUN_ALLOCATOR_MODE_FREE;
     if (!arena || !backing_allocator || !pool_size
     || required_modes &~ backing_allocator->implemented_modes
     ) return false;
@@ -574,7 +577,7 @@ bool Dynamic_Arena_Init( Dynamic_Arena *arena, Allocator *backing_allocator, U32
     arena->pool_offset    = 0;
 
     arena->pool_len = 8;
-    arena->pools = Allocator_Alloc(sizeof(Arena)*arena->pool_len, true, BUN_ALLOCATOR_DEFAULT_ALIGN, backing_allocator);
+    arena->pools = Bun_Allocator_Alloc(sizeof(Bun_Arena)*arena->pool_len, true, BUN_ALLOCATOR_DEFAULT_ALIGN, backing_allocator);
     if (arena->pools == NULL) return false;
 
     /* this is actually not a good idea, just let the first allocation handle it.
@@ -582,7 +585,7 @@ bool Dynamic_Arena_Init( Dynamic_Arena *arena, Allocator *backing_allocator, U32
     arena->pools[0].offset = 0;
     */
 }
-void Dynamic_Arena_Deinit( Dynamic_Arena *arena )
+void Bun_Dynamic_Arena_Deinit( Bun_Dynamic_Arena *arena )
 {
     if (!arena || !arena->allocator || !arena->pools) return;
 
@@ -590,16 +593,16 @@ void Dynamic_Arena_Deinit( Dynamic_Arena *arena )
     for ( i = 0; i < arena->pool_len; i++ )
     {
         if (arena->pools[i].buffer == NULL) break;
-        Allocator_Free(arena->pools[i].buffer, arena->allocator);
+        Bun_Allocator_Free(arena->pools[i].buffer, arena->allocator);
     }
-    Allocator_Free(arena->pools, arena->allocator);
+    Bun_Allocator_Free(arena->pools, arena->allocator);
 }
 
-void *Dynamic_Arena_Alloc_Push(U32 size, bool zeroed, U32 alignment, Dynamic_Arena *arena)
+void *Bun_Dynamic_Arena_Alloc_Push(Bun_U32 size, bool zeroed, Bun_U32 alignment, Bun_Dynamic_Arena *arena)
 {
     uintptr_t current_pointer, offset;
     void *ptr;
-    Arena *pool;
+    Bun_Arena *pool;
 
     /*Im blanking on if `type x = y[]` is a copy or not, I think it is, but have no internet to check*/
     pool = &arena->pools[arena->pool_offset];
@@ -609,18 +612,18 @@ void *Dynamic_Arena_Alloc_Push(U32 size, bool zeroed, U32 alignment, Dynamic_Are
 
     if ( offset + size > pool->buffer_size )
     {
-        U32 pool_size = (arena->pool_size > size) ? arena->pool_size : size;
+        Bun_U32 pool_size = (arena->pool_size > size) ? arena->pool_size : size;
 
         if (pool->buffer != NULL) arena->pool_offset += 1;
 
         if (arena->pool_offset >= arena->pool_len)
         {
-            U32 old_size = sizeof(Arena)*arena->pool_len;
-            Arena *new_ptr;
+            Bun_U32 old_size = sizeof(Bun_Arena)*arena->pool_len;
+            Bun_Arena *new_ptr;
             
             arena->pool_len += 8;
-            new_ptr = Allocator_Resize( arena->pools,
-                                        sizeof(Arena)*arena->pool_len, old_size,
+            new_ptr = Bun_Allocator_Resize( arena->pools,
+                                        sizeof(Bun_Arena)*arena->pool_len, old_size,
                                         true, BUN_ALLOCATOR_DEFAULT_ALIGN, arena->allocator);
             if (!new_ptr)
                 return NULL;
@@ -629,7 +632,7 @@ void *Dynamic_Arena_Alloc_Push(U32 size, bool zeroed, U32 alignment, Dynamic_Are
         }
         pool = &arena->pools[arena->pool_offset];
         offset = 0;
-        Arena_Init_From_Allocator( pool, arena->allocator, pool_size, arena->pool_zeroed, arena->pool_alignment );
+        Bun_Arena_Init_From_Allocator( pool, arena->allocator, pool_size, arena->pool_zeroed, arena->pool_alignment );
         if (pool->buffer == NULL) return NULL;
     }
 
@@ -640,13 +643,13 @@ void *Dynamic_Arena_Alloc_Push(U32 size, bool zeroed, U32 alignment, Dynamic_Are
 
     return ptr;
 }
-void *Dynamic_Arena_Alloc_Insert(U32 size, bool zeroed, U32 alignment, Dynamic_Arena *arena)
+void *Bun_Dynamic_Arena_Alloc_Insert(Bun_U32 size, bool zeroed, Bun_U32 alignment, Bun_Dynamic_Arena *arena)
 {
     uintptr_t current_pointer, offset;
     void *ptr;
-    Arena *pool;
+    Bun_Arena *pool;
 
-    if (size > arena->pool_size) return Dynamic_Arena_Alloc_Push(size, zeroed, alignment, arena);
+    if (size > arena->pool_size) return Bun_Dynamic_Arena_Alloc_Push(size, zeroed, alignment, arena);
 
     int i;
     for (i = 0; i < arena->pool_len; i++)
@@ -666,13 +669,13 @@ void *Dynamic_Arena_Alloc_Insert(U32 size, bool zeroed, U32 alignment, Dynamic_A
         return ptr;
     }
     /* if we reach here there are no gaps to fill */
-    return Dynamic_Arena_Alloc_Push(size, zeroed, alignment, arena);
+    return Bun_Dynamic_Arena_Alloc_Push(size, zeroed, alignment, arena);
 }
-void *Dynamic_Arena_Resize(void *old_memory, U32 size, U32 old_size, bool zeroed, U32 alignment, Dynamic_Arena *arena)
+void *Bun_Dynamic_Arena_Resize(void *old_memory, Bun_U32 size, Bun_U32 old_size, bool zeroed, Bun_U32 alignment, Bun_Dynamic_Arena *arena)
 {
     uintptr_t current_pointer, offset;
     void *ptr;
-    Arena *pool;
+    Bun_Arena *pool;
     int i;
 
     for (i = 0; i < arena->pool_offset; i++)
@@ -681,13 +684,13 @@ void *Dynamic_Arena_Resize(void *old_memory, U32 size, U32 old_size, bool zeroed
         if ((uintptr_t)old_memory < (uintptr_t)pool->buffer || (uintptr_t)old_memory >= (uintptr_t)pool->buffer + pool->buffer_size)
             continue;
         /* pool found */
-        offset = (Byte*)old_memory - pool->buffer;
+        offset = (Bun_Byte*)old_memory - pool->buffer;
         if (offset == pool->offset - old_size) /*Is on the end*/
         {
             if (offset + size >= pool->buffer_size)
             {
                 pool->offset = offset;
-                ptr = Dynamic_Arena_Alloc_Push(size, zeroed, alignment, arena);
+                ptr = Bun_Dynamic_Arena_Alloc_Push(size, zeroed, alignment, arena);
                 if (ptr == NULL) return NULL;
                 return memmove(ptr, old_memory, size);
             }
@@ -708,7 +711,7 @@ void *Dynamic_Arena_Resize(void *old_memory, U32 size, U32 old_size, bool zeroed
         }
         else /*shrink in the middle of allocated mem (move) */
         {
-            ptr = Dynamic_Arena_Alloc_Push(size, zeroed, alignment, arena);
+            ptr = Bun_Dynamic_Arena_Alloc_Push(size, zeroed, alignment, arena);
             if (ptr == NULL) return NULL;
             return memmove(ptr, old_memory, size);
         }
@@ -717,57 +720,57 @@ void *Dynamic_Arena_Resize(void *old_memory, U32 size, U32 old_size, bool zeroed
     /* If here is reached old_memory is not a valid pointer */
     return NULL;
 }
-void Dynamic_Arena_Free_All(Dynamic_Arena *arena, bool zero_pools)
+void Bun_Dynamic_Arena_Free_All(Bun_Dynamic_Arena *arena, bool zero_pools)
 {
     if (arena == NULL) return;
     int i;
     for (i = 0; i < arena->pool_len; i++)
     {
-        Arena *pool = &arena->pools[i];
+        Bun_Arena *pool = &arena->pools[i];
         pool->offset = 0;
         if (zero_pools) memset(pool->buffer, 0, pool->buffer_size);
     }
     arena->pool_offset = 0;
 }
-void Dynamic_Arena_Free_Pools(Dynamic_Arena *arena, U32 min_pools, bool zero_pools)
+void Bun_Dynamic_Arena_Free_Pools(Bun_Dynamic_Arena *arena, Bun_U32 min_pools, bool zero_pools)
 {
     if (arena == NULL) return;
 
-    if (arena->pool_len < min_pools) Dynamic_Arena_Free_All(arena, zero_pools);
+    if (arena->pool_len < min_pools) Bun_Dynamic_Arena_Free_All(arena, zero_pools);
 
     int i;
     for (i = 0; i < arena->pool_len; i++)
     {
-        Arena *pool = &arena->pools[i];
+        Bun_Arena *pool = &arena->pools[i];
         pool->offset = 0;
-        if (i >= min_pools) Allocator_Free(pool->buffer, arena->allocator);
+        if (i >= min_pools) Bun_Allocator_Free(pool->buffer, arena->allocator);
         else if (zero_pools) memset(pool->buffer, 0, pool->buffer_size);
     }
-    arena->pools = Allocator_Resize( arena->pools,
-                                   sizeof(Arena)*min_pools, sizeof(Arena)*arena->pool_len,
+    arena->pools = Bun_Allocator_Resize( arena->pools,
+                                   sizeof(Bun_Arena)*min_pools, sizeof(Bun_Arena)*arena->pool_len,
                                    false, BUN_ALLOCATOR_DEFAULT_ALIGN, arena->allocator);
     arena->pool_len = min_pools;
     arena->pool_offset = 0;
 }
 
-String String_Alias(const char *cstring, U32 len)
+Bun_String Bun_String_Alias(const char *cstring, Bun_U32 len)
 {
-    if (!len) len = (U32)strlen(cstring);
-    return (String){
+    if (!len) len = (Bun_U32)strlen(cstring);
+    return (Bun_String){
         .ptr = (char*)cstring,
         .len = len
     };
 }
 
-String String_Copy(const char *cstring, U32 len, Allocator *allocator)
+Bun_String Bun_String_Copy(const char *cstring, Bun_U32 len, Bun_Allocator *allocator)
 {
-    String string = {0};
+    Bun_String string = {0};
 
     if (cstring == NULL) return string;
 
-    if (!len) len = (U32)strlen(cstring);
-    string = (String){
-        .ptr = Allocator_Alloc(len, false, 1, allocator),
+    if (!len) len = (Bun_U32)strlen(cstring);
+    string = (Bun_String){
+        .ptr = Bun_Allocator_Alloc(len, false, 1, allocator),
         .len = len
     };
     if (string.ptr == NULL) return string;
@@ -776,14 +779,91 @@ String String_Copy(const char *cstring, U32 len, Allocator *allocator)
     return string;
 }
 
-String String_Duplicate(String string, Allocator *allocator)
+Bun_String Bun_String_Duplicate(Bun_String string, Bun_Allocator *allocator)
 {
-    return String_Copy( string.ptr, string.len, allocator );
+    return Bun_String_Copy( string.ptr, string.len, allocator );
 }
 
-bool String_Is_Null_Terminated(String string)
+bool Bun_String_Is_Null_Terminated(Bun_String string)
 {
     return string.ptr && string.ptr[string.len] == '\0';
 }
 
 #endif /*BUN_IMPLEMENTATION*/
+
+#ifdef BUN_STRIP_PREFIX
+#    define S8 Bun_S8
+#    define S16 Bun_S16
+#    define S32 Bun_S32
+#    define S64 Bun_S64
+
+#    define U8 Bun_U8
+#    define U16 Bun_U16
+#    define U32 Bun_U32
+#    define U64 Bun_U64
+
+#    define F32 Bun_F32
+#    define F64 Bun_F64
+#    define F128 Bun_F128
+#    define String Bun_String
+#    define Allocator_Error Bun_Allocator_Error
+#        define ALLOCATOR_ERROR_NONE                 BUN_ALLOCATOR_ERROR_NONE 
+#        define ALLOCATOR_ERROR_MODE_NOT_IMPLEMENTED BUN_ALLOCATOR_ERROR_MODE_NOT_IMPLEMENTED 
+#        define ALLOCATOR_ERROR_OUT_OF_MEMORY        BUN_ALLOCATOR_ERROR_OUT_OF_MEMORY 
+#        define ALLOCATOR_ERROR_INVALID_POINTER      BUN_ALLOCATOR_ERROR_INVALID_POINTER 
+#        define ALLOCATOR_ERROR_INVALID_ARGUMENT     BUN_ALLOCATOR_ERROR_INVALID_ARGUMENT 
+#        define ALLOCATOR_ERROR_UNKNOWN              BUN_ALLOCATOR_ERROR_UNKNOWN 
+#        define _ALLOCATOR_ERROR_COUNT               _BUN_ALLOCATOR_ERROR_COUNT 
+#    define Allocator_Mode Bun_Allocator_Mode
+#        define ALLOCATOR_MODE_ALLOC             BUN_ALLOCATOR_MODE_ALLOC 
+#        define ALLOCATOR_MODE_ALLOC_NON_ZEROED  BUN_ALLOCATOR_MODE_ALLOC_NON_ZEROED 
+#        define ALLOCATOR_MODE_FREE              BUN_ALLOCATOR_MODE_FREE 
+#        define ALLOCATOR_MODE_FREE_ALL          BUN_ALLOCATOR_MODE_FREE_ALL 
+#        define ALLOCATOR_MODE_RESIZE            BUN_ALLOCATOR_MODE_RESIZE 
+#        define ALLOCATOR_MODE_RESIZE_NON_ZEROED BUN_ALLOCATOR_MODE_RESIZE_NON_ZEROED 
+#    define Allocator_Proc Bun_Allocator_Proc
+#    define Allocator Bun_Allocator
+#    define Arena Bun_Arena
+#    define Dynamic_Arena Bun_Dynamic_Arena
+#    define Allocator_Alloc Bun_Allocator_Alloc
+#    define Allocator_Free Bun_Allocator_Free
+#    define Allocator_Free_all Bun_Allocator_Free_all
+#    define Allocator_Resize Bun_Allocator_Resize
+#    define Allocator_NEW Bun_Allocator_NEW
+#    define Arena_Init_From_Allocator Bun_Arena_Init_From_Allocator
+#    define Arena_Deinit_From_Allocator Bun_Arena_Deinit_From_Allocator
+#    define Arena_Alloc Bun_Arena_Alloc
+#    define Arena_Resize Bun_Arena_Resize
+#    define Arena_Free_All Bun_Arena_Free_All
+#    define Dynamic_Arena_Init Bun_Dynamic_Arena_Init
+#    define Dynamic_Arena_Deinit Bun_Dynamic_Arena_Deinit
+#    define Dynamic_Arena_Alloc_Push Bun_Dynamic_Arena_Alloc_Push
+#    define Dynamic_Arena_Alloc_Insert Bun_Dynamic_Arena_Alloc_Insert
+#    define Dynamic_Arena_Resize Bun_Dynamic_Arena_Resize
+#    define Dynamic_Arena_Free_All Bun_Dynamic_Arena_Free_All
+#    define Dynamic_Arena_Free_Pools Bun_Dynamic_Arena_Free_Pools
+#    define allocator_libc bun_allocator_libc
+#    define Align_formula Bun_Align_formula
+#    define String_Alias Bun_String_Alias
+#    define String_Copy Bun_String String_Copy
+#    define String_Duplicate Bun_String_Duplicate
+#    define String_Is_Null_Terminated Bun_String_Is_Null_Terminated
+#    ifndef BUN_NO_MACROS
+#        define INTERNAL BUN_INTERNAL
+#        define GLOBAL BUN_GLOBAL
+#        define BIT_L BUN_BIT_L
+#        define BIT_H BUN_BIT_H
+#        define BIT BUN_BIT
+#        define DEFER_LOOP BUN_DEFER_LOOP
+#        define MIN BUN_MIN
+#        define MAX BUN_MAX
+#        define CLAMP BUN_CLAMP
+#        define INT_FROM_PTR BUN_INT_FROM_PTR
+#        define MEMBER BUN_MEMBER
+#        define OFFSET_OF BUN_OFFSET_OF
+#        define MEMBER_FROM_OFFSET BUN_MEMBER_FROM_OFFSET
+#        define CAST_FROM_MEMBER BUN_CAST_FROM_MEMBER
+#    endif /*ifndef BUN_NO_MACROS*/
+#    define ALLOCATOR_DEFAULT_ALIGN BUN_ALLOCATOR_DEFAULT_ALIGN
+
+#endif /*ifdef BUN_STRIP_PREFIX*/

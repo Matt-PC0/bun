@@ -1,4 +1,5 @@
 #define BUN_IMPLEMENTATION
+#define BUN_STRIP_PREFIX
 #include "bun.h"
 
 #include <stdio.h>
@@ -13,10 +14,10 @@ int main(void)
     String str;
     int i;
 
-    Arena_Init_From_Allocator( &arena, &allocator_libc, 1000, true, BUN_ALLOCATOR_DEFAULT_ALIGN );
+    Arena_Init_From_Allocator( &arena, &allocator_libc, 1000, true, ALLOCATOR_DEFAULT_ALIGN );
 
     str.len = ASCII_RANGE;
-    str.ptr = Arena_Alloc( str.len+1, true, BUN_ALLOCATOR_DEFAULT_ALIGN, &arena );
+    str.ptr = Arena_Alloc( str.len+1, true, ALLOCATOR_DEFAULT_ALIGN, &arena );
 
     for (i = 0; i < str.len; i++)
     {
